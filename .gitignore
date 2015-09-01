@@ -26,6 +26,7 @@ libtool
 *.dvi
 *.log
 *.htx_tar
+m4/
 aclocal.m4
 autom4te.cache/
 component.xml
