@@ -17,7 +17,7 @@ dnl    isn't found then configure will complain
 AC_CONFIG_SRCDIR([pal.h])
 
 dnl    Include defaults for Starlink configurations
-STAR_DEFAULTS
+ifdef([STAR_DEFAULTS], [STAR_DEFAULTS], [])
 
 dnl    Would like the version number as an integer
 AC_DEFINE_UNQUOTED([PACKAGE_VERSION_INTEGER], $PACKAGE_VERSION_INTEGER,
@@ -124,12 +124,12 @@ else
 fi
 
 dnl    Declare the build and use dependencies for this package
-dnl STAR_DECLARE_DEPENDENCIES(build, [erfa starutil])
-dnl STAR_DECLARE_DEPENDENCIES(link,  [erfa starutil])
+ifdef([STAR_DECLARE_DEPENDENCIES], [STAR_DECLARE_DEPENDENCIES(build, [erfa starutil])])
+ifdef([STAR_DECLARE_DEPENDENCIES], [STAR_DECLARE_DEPENDENCIES(link,  [erfa starutil])])
 
 dnl    List the sun/ssn/... numbers which document this package and
 dnl    which are present as .tex files in this directory.
-dnl STAR_LATEX_DOCUMENTATION(sun267)
+ifdef([STAR_LATEX_DOCUMENTATION], [STAR_LATEX_DOCUMENTATION(sun267)])
 
 dnl    If you wish to configure extra files, you can add them to this
 dnl    declaration.
