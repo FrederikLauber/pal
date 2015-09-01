@@ -137,3 +137,6 @@ palsun.tex: $(PUBLIC_C_FILES)
 	cat $(PUBLIC_C_FILES) > all.c
 	${STARLINK_DIR}/bin/sst/prolat in=all.c out=palsun.tex single=no page=no atask=no document=no
 	-rm all.c
+
+.PHONY: test
+test: check
