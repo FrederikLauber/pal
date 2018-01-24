@@ -2,7 +2,7 @@ dnl    Process this file with autoconf to produce a configure script
 AC_REVISION($Revision: 27534 $)
 
 dnl    Initialisation: package name and version number
-AC_INIT([pal],[0.9.1],[starlink@jiscmail.ac.uk])
+AC_INIT([pal],[0.9.7],[starlink@jiscmail.ac.uk])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -39,6 +39,7 @@ AC_CHECK_FUNCS(isblank)
 
 dnl    Use strlcpy if it is available
 AC_SEARCH_LIBS([strlcpy], [bsd])
+AS_IF([test "x$ac_cv_search_strlcpy" = "x-lbsd"], [AC_CHECK_HEADERS([bsd/string.h])])
 AC_CHECK_FUNCS([strlcpy])
 
 # Need the math library
@@ -47,19 +48,51 @@ AC_CHECK_LIB([m],[sin])
 dnl    We can not simply test for Starlink starutil because
 dnl    when configure runs in a Starlink build starutil will not
 dnl    have been built yet. If --without-starlink has been used
-dnl    $STARLINK will be unset but to play safe we check STARCONF_DEFAULT_PREFIX
+dnl    $STARLINK will be unset but to play safe we also check STARCONF_DEFAULT_PREFIX
 dnl    If we do not have Starlink we can do the test anyhow just in case
 
-if test -n "$STARCONF_DEFAULT_PREFIX"
+if test -n "$STARCONF_DEFAULT_PREFIX" -a -n "$STARLINK"
 then
+  AC_MSG_NOTICE([Assuming a Starlink environment])
   AC_SUBST( STARUTIL_LIBADD, "${libdir}/libstarutil.la" )
   AC_SUBST( ERFA_LIBADD, "${libdir}/liberfa.la" )
   AC_SUBST( ERFA_LDFLAGS, "" )
   AC_DEFINE( [HAVE_STAR_UTIL_H], [1], [Define to 1 if you have the <star/util.h> header file])
 else
+  AC_MSG_NOTICE([Building outside a Starlink environment])
+
+  #   Allow ERFA/SOFA location to be specified using --with-erfa=$ERFA_DIR
+  #   Assumes that the value supplied here is the root and lib and include directories
+  #   are below it. --with-erfa=no or --without-erfa will result in ERFA being
+  #   located in $PREFIX tree. This option is only effective if Starlink is not
+  #   active.
+  AC_ARG_WITH(erfa,
+              AS_HELP_STRING([--with-erfa],
+                             [Location of ERFA/SOFA tree]),
+              [if test -z "$withval" -o "$withval" = yes; then
+                   unset ERFA_DIR
+               elif test "X$withval" = Xno; then
+                   unset ERFA_DIR
+               elif test -d "$withval"; then
+                   ERFA_DIR="$withval"
+               else
+                   unset ERFA_DIR
+                   AC_MSG_WARN([--with-erfa given nonexistent directory; ignored: using default instead])
+               fi])
+  if test -n "$ERFA_DIR"; then
+      AC_MSG_NOTICE([ERFA/SOFA tree located at $ERFA_DIR])
+      erfa_includedir="${ERFA_DIR}/include"
+      erfa_libdir="${ERFA_DIR}/lib"
+  else
+      ERFA_DIR=${prefix}
+      erfa_includedir=${includedir}
+      erfa_libdir=${libdir}
+      AC_MSG_NOTICE([Looking for ERFA/SOFA in default location of $ERFA_DIR])
+  fi
+
   dnl AC_CHECK_HEADERS does not search $includedir
   save_CPPFLAGS="$CPPFLAGS"
-  eval CPPFLAGS=\"$CPPFLAGS -I${includedir}\"
+  eval CPPFLAGS=\"$CPPFLAGS -I${includedir} -I${erfa_includedir}\"
   eval CPPFLAGS=\"$CPPFLAGS\"
   AC_CHECK_HEADERS( star/util.h )
   CPPFLAGS="$save_CPPFLAGS"
@@ -68,7 +101,7 @@ else
   dnl $libdir is not searched.
   dnl and we use eval twice to convert $libdir -> $exec_prefix/lib -> $prefix/lib
   save_LDFLAGS="$LDFLAGS"
-  eval LDFLAGS=\"$LDFLAGS -L${libdir}\"
+  eval LDFLAGS=\"$LDFLAGS -L${libdir} -L${erfa_libdir}\"
   eval LDFLAGS=\"$LDFLAGS\"
 
   AC_CHECK_LIB([starutil],[star_strlcpy],
@@ -85,12 +118,12 @@ else
                ])
   LDFLAGS="$save_LDFLAGS"
 
-  dnl  Ensure that we use the $prefix values
-  AC_SUBST( ERFA_LDFLAGS, "-L${libdir}" )
-  AC_SUBST( ERFA_CPPFLAGS, "-I${includedir}" )
+  dnl  Ensure that we use the $prefix values and the ERFA values
+  AC_SUBST( ERFA_LDFLAGS, "-L${libdir} -L${erfa_libdir}" )
+  AC_SUBST( ERFA_CPPFLAGS, "-I${includedir} -I${erfa_includedir}" )
 
   dnl  Disable document building regardless of --without-stardocs
-  _star_build_docs=:
+  _star_build_docs=false
 fi
 
 dnl    Declare the build and use dependencies for this package

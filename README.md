@@ -1,7 +1,7 @@
 PAL - Positional Astronomy Library
 ==================================
 
-[![DOI](https://zenodo.org/badge/12517/Starlink/pal.svg)](http://dx.doi.org/10.5281/zenodo.17212)
+[![DOI](https://zenodo.org/badge/5487324.svg)](https://zenodo.org/badge/latestdoi/5487324)
 
 The PAL library is a partial re-implementation of Pat Wallace's popular SLALIB
 library written in C using a Gnu GPL license and layered on top of the IAU's
@@ -33,8 +33,8 @@ Given the history of the source code as a Starlink library the default will be `
 configurations. This is the safe option if you run into problems when using
 a simple `--prefix` for building outside of Starlink. The configure script
 will assume Starlink is not being used by looking to see if
-`STARLINK_DIR` environment variable is set. You may run into problems if
-`STARLINK_DIR` is set but you use `--without-starlink`.
+`STARCONF_DEFAULT_PREFIX` environment variable is set. You may run into problems if
+`STARCONF_DEFAULT_PREFIX` is set but you use `--without-starlink`.
 
 Requirements
 ------------
@@ -73,4 +73,3 @@ Documentation
 The description paper for PAL is: ["_PAL: A Positional Astronomy Library_"](http://adsabs.harvard.edu/abs/2013ASPC..475..307J),
 Jenness, T. & Berry, D. S., in _Astronomical Data Anaysis Software and Systems XXII_,
 Friedel, D. N. (ed), ASP Conf. Ser. **475**, p307.
-

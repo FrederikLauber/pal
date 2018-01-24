@@ -275,8 +275,8 @@ static void t_amp ( int *status ) {
 
   /* This is the palMapqk test */
   palAmp( 1.234, -0.567, 55927.0, 2010.0, &rm, &dm );
-  vvd( rm, 1.2335120411026936349, 1.0E-12, "palAmp", "rm", status );
-  vvd( dm, -0.56702908706930343907, 1.0E-12, "palAmp", "dm", status );
+  vvd( rm, 1.233512033578303857, 1.0E-12, "palAmp", "rm", status );
+  vvd( dm, -0.56702909748530827549, 1.0E-12, "palAmp", "dm", status );
 }
 
 /* Apparent to Observed place */
@@ -1269,26 +1269,77 @@ static void t_mappa( int *status ) {
    vvec( 21, amprms, expected, "palMappa", status );
 }
 
+static void t_mapqk( int *status ) {
+    /* Test mapqk by taking the geocentric apparent positions of Arcturus
+       as downloaded from aa.usno.mil/data/docs/geocentric.php and trying
+       to calculate it from Arcturus' mean position, proper motion, parallax,
+       and radial velocity */
+
+    double amprms[21];
+    double ra_0, dec_0; /* mean position */
+    double ra_app, dec_app; /* geocentric apparent position */
+    double ra_test, dec_test;
+    double px, pm_ra, pm_dec, v_rad;
+    int j;
+    int iposn;
+
+    /*
+    The data below represents the position of Arcturus on
+    JD (UT) 2457000.375 as reported by
+    http://aa.usno.navy.mil/data/docs/geocentric.php
+    */
+
+    const char radec_0[] = "14 15 39.67207 19 10 56.673";
+    const char radec_app[] = "14 16 19.59 19 6 19.56";
+
+    iposn = 1;
+    palDafin(radec_0, &iposn, &ra_0, &j);
+    palDafin(radec_0, &iposn, &dec_0, &j);
+    ra_0 *= 15.0;
+
+    pm_ra = -1.0939*PAL__DAS2R;
+    pm_ra /= cos(dec_0);
+    pm_dec = -2.00006*PAL__DAS2R;
+    v_rad = -5.19;
+    px = 0.08883*PAL__DAS2R;
+
+    palMappa(2000.0, 56999.87537249177, amprms);  /* time is the TDB MJD calculated from
+                                                     a JD of 2457000.375 with astropy.time */
+
+    palMapqk(ra_0, dec_0, pm_ra, pm_dec, px, v_rad, amprms, &ra_test, &dec_test);
+
+    iposn = 1;
+    palDafin(radec_app, &iposn, &ra_app, &j);
+    palDafin(radec_app, &iposn, &dec_app, &j);
+    ra_app *= 15.0;
+
+    /* find the angular distance from the known mean position
+       to the calculated mean postion */
+    double dd;
+    dd = palDsep(ra_test, dec_test, ra_app, dec_app);
+    dd *= PAL__DR2AS;
+    vvd( dd, 0.0, 0.1, "palMapqk", "distance", status);
+}
+
 static void t_mapqkz( int *status ) {
-   double amprms[21],  ra, da;
+   double amprms[21],  ra, da, ra_c, da_c;
+
+   /* Run inputs through mapqk with zero proper motion, parallax
+      and radial velocity.  Then run the same inputs through mapqkz.
+      Verify that the results are the same */
    palMappa( 2010.0, 55927.0, amprms );
+   palMapqk(1.234, -0.567, 0.0, 0.0, 0.0, 0.0, amprms, &ra_c, &da_c);
    palMapqkz( 1.234, -0.567, amprms, &ra, &da );
-   vvd( ra, 1.2344879748414849807, 1.0E-12, "palMapqkz", "ra", status );
-   vvd( da, -0.56697099554368701746, 1.0E-12, "palMapqkz", "da", status );
-
-   /* Try the same with palMapqk and zero parallax and proper motion */
-   palMapqk( 1.234, -0.567, 0., 0., 0., 0., amprms, &ra, &da );
-   vvd( ra, 1.2344879748414849807, 1.0E-7, "palMapqkz", "ra", status );
-   vvd( da, -0.56697099554368701746, 1.0E-7, "palMapqkz", "da", status );
-
+   vvd( ra, ra_c, 1.0E-12, "palMapqkz", "ra", status );
+   vvd( da, da_c, 1.0E-12, "palMapqkz", "da", status );
 }
 
 static void t_ampqk( int *status ) {
    double amprms[21],  rm, dm;
    palMappa( 2010.0, 55927.0, amprms );
    palAmpqk( 1.234, -0.567, amprms, &rm, &dm );
-   vvd( rm, 1.2335120411026936349, 1.0E-12, "palAmpqk", "rm", status );
-   vvd( dm, -0.56702908706930343907, 1.0E-12, "palAmpqk", "dm", status );
+   vvd( rm, 1.233512033578303857, 1.0E-12, "palAmpqk", "rm", status );
+   vvd( dm, -0.56702909748530827549, 1.0E-12, "palAmpqk", "dm", status );
 }
 
 static void t_fk45z( int *status ) {
@@ -1305,6 +1356,18 @@ static void t_fk54z( int *status ) {
    vvd( d1950, -0.30178317645793828472, 1.0E-12, "palFk54z", "d1950", status );
    vvd( dr1950, -1.7830874775952945507e-08, 1.0E-12, "palFk54z", "dr1950", status );
    vvd( dd1950, 7.196059425334821089e-09, 1.0E-12, "palFk54z", "dd1950", status );
+}
+
+static void t_fk524( int *status ) {
+  double r1950, d1950, dr1950, dd1950, p1950, v1950;
+  palFk524(4.567, -1.23, -3e-5, 8e-6, 0.29,
+           -35.0, &r1950, &d1950, &dr1950, &dd1950, &p1950, &v1950);
+  vvd(r1950, 4.543778603272084, 1e-12, "palFk524", "r", status);
+  vvd(d1950, -1.229642790187574, 1e-12, "palFk524", "d", status);
+  vvd(dr1950, -2.957873121769244e-5, 1e-17, "palFk524", "dr", status);
+  vvd(dd1950, 8.117725309659079e-6, 1e-17, "palFk524", "dd", status);
+  vvd(p1950, 0.2898494999992917, 1e-12, "palFk524", "p", status);
+  vvd(v1950, -35.026862824252680, 1e-11, "palFk524", "v", status);
 }
 
 static void t_flotin( int * status ) {
@@ -1999,6 +2062,7 @@ int main (void) {
   t_evp(&status);
   t_fk45z(&status);
   t_fk54z(&status);
+  t_fk524(&status);
   t_flotin(&status);
   t_galeq(&status);
   t_galsup(&status);
@@ -2014,6 +2078,7 @@ int main (void) {
   t_e2h(&status);
   t_map(&status);
   t_mappa(&status);
+  t_mapqk(&status);
   t_mapqkz(&status);
   t_moon(&status);
   t_nut(&status);
@@ -2041,4 +2106,3 @@ int main (void) {
   t_vers(&status);
   return status;
 }
-
