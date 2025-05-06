@@ -42,6 +42,12 @@ AC_SEARCH_LIBS([strlcpy], [bsd])
 AS_IF([test "x$ac_cv_search_strlcpy" = "x-lbsd"], [AC_CHECK_HEADERS([bsd/string.h])])
 AC_CHECK_FUNCS([strlcpy])
 
+# check if bsd/string.h needs to be included
+dnl Check for the bsd/string.h header
+AC_CHECK_HEADER([bsd/string.h],
+  [AC_DEFINE([HAVE_BSD_STRING_H], [1], [Define if you have <bsd/string.h>])]
+)
+
 # Need the math library
 AC_CHECK_LIB([m],[sin])
 
